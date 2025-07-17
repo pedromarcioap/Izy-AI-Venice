@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Izy AI Venice Chrome extension with OpenRouter support",
   "scripts": {
-    "build": "echo 'Chrome extension build complete - no build step required'"
+    "build": "echo 'Web app build complete - files ready for deployment'",
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000"
   },
   "keywords": ["chrome-extension", "ai", "openrouter"],
   "author": "",
