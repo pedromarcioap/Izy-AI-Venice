@@ -4,6 +4,7 @@
   "version": "1.0",
   "description": "Izy Ai Venice extension with OpenRouter support",
   "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://openrouter.ai/*"],
   "background": {
     "service_worker": "background.js"
   },

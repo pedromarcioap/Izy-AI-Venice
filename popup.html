@@ -3,16 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Max AI Chat</title>
+  <title>Izy AI Venice</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Max AI Chat</h1>
-  <div id="chat-container">
-    <div id="messages"></div>
-    <input type="text" id="user-input" placeholder="Digite sua mensagem aqui...">
-    <button onclick="sendMessage()">Enviar</button>
+  <div class="header">
+    <h1>🤖 Izy AI Venice</h1>
+    <button id="settings-btn" class="settings-btn">⚙️</button>
   </div>
+
+  <div id="main-view">
+    <div id="chat-container">
+      <div id="messages"></div>
+      <div class="input-container">
+        <input type="text" id="user-input" placeholder="Digite sua mensagem aqui..." maxlength="1000">
+        <button id="send-btn">📤</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-view" class="hidden">
+    <div class="settings-header">
+      <button id="back-btn">← Voltar</button>
+      <h2>Configurações</h2>
+    </div>
+    
+    <div class="setting-group">
+      <label for="api-key">OpenRouter API Key:</label>
+      <input type="password" id="api-key" placeholder="Insira sua API key">
+      <small>Obtenha sua chave em <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></small>
+    </div>
+
+    <div class="setting-group">
+      <label for="model-select">Modelo:</label>
+      <select id="model-select">
+        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+        <option value="openai/gpt-4">GPT-4</option>
+        <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+        <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B</option>
+      </select>
+    </div>
+
+    <button id="save-settings">Salvar Configurações</button>
+    <button id="clear-chat">Limpar Chat</button>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
