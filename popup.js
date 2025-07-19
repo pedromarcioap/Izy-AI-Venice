@@ -1,9 +1,12 @@
 let currentView = 'main';
+let modelsLoaded = false;
+let currentApiKey = null;
 
 document.addEventListener('DOMContentLoaded', function() {
   loadSettings();
   setupEventListeners();
   loadChatHistory();
+  initializeModels();
 });
 
 function setupEventListeners() {
@@ -20,6 +23,9 @@ function setupEventListeners() {
   document.getElementById('back-btn').addEventListener('click', showMain);
   document.getElementById('save-settings').addEventListener('click', saveSettings);
   document.getElementById('clear-chat').addEventListener('click', clearChat);
+  document.getElementById('refresh-models').addEventListener('click', refreshModels);
+  document.getElementById('model-search').addEventListener('input', searchModels);
+  document.getElementById('validate-key').addEventListener('click', validateApiKey);
 }
 
 function showSettings() {
@@ -34,18 +40,185 @@ function showMain() {
   currentView = 'main';
 }
 
-function loadSettings() {
-  chrome.storage.sync.get(['openRouterApiKey', 'selectedModel'], function(result) {
-    if (result.openRouterApiKey) {
-      document.getElementById('api-key').value = result.openRouterApiKey;
+async function loadSettings() {
+  try {
+    const keyData = await window.securityManager.getApiKey();
+    if (keyData && keyData.key) {
+      currentApiKey = keyData.key;
+      document.getElementById('api-key').value = keyData.key;
+      
+      // Mostra status da chave
+      updateKeyStatus(keyData);
     }
-    if (result.selectedModel) {
-      document.getElementById('model-select').value = result.selectedModel;
+
+    // Carrega modelo selecionado
+    chrome.storage.sync.get(['selectedModel'], function(result) {
+      if (result.selectedModel) {
+        document.getElementById('model-select').value = result.selectedModel;
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao carregar configurações:', error);
+  }
+}
+
+function updateKeyStatus(keyData) {
+  const statusDiv = document.getElementById('key-status');
+  if (!statusDiv) return;
+
+  const age = window.securityManager.getKeyAge(keyData.timestamp);
+  const isValidated = keyData.validated;
+  
+  statusDiv.innerHTML = `
+    <div class="key-status ${isValidated ? 'validated' : 'unvalidated'}">
+      <span class="status-icon">${isValidated ? '✅' : '⚠️'}</span>
+      <div class="status-text">
+        <div>${isValidated ? 'Chave validada' : 'Chave não validada'}</div>
+        <small>Salva ${age}</small>
+      </div>
+    </div>
+  `;
+}
+
+async function initializeModels() {
+  if (!currentApiKey) return;
+  
+  try {
+    await loadModels();
+  } catch (error) {
+    console.error('Erro ao inicializar modelos:', error);
+  }
+}
+
+async function loadModels(forceUpdate = false) {
+  if (!currentApiKey) return;
+
+  const loadingIndicator = document.getElementById('models-loading');
+  if (loadingIndicator) {
+    loadingIndicator.style.display = 'block';
+  }
+
+  try {
+    const models = await window.modelsManager.syncModels(currentApiKey, forceUpdate);
+    populateModelSelect(models);
+    modelsLoaded = true;
+    
+    if (loadingIndicator) {
+      loadingIndicator.style.display = 'none';
     }
+  } catch (error) {
+    console.error('Erro ao carregar modelos:', error);
+    if (loadingIndicator) {
+      loadingIndicator.innerHTML = '<small style="color: #dc3545;">Erro ao carregar modelos</small>';
+    }
+  }
+}
+
+function populateModelSelect(models) {
+  const select = document.getElementById('model-select');
+  if (!select) return;
+
+  // Limpa opções existentes
+  select.innerHTML = '';
+
+  // Adiciona modelos populares primeiro
+  const popularModels = window.modelsManager.getPopularModels();
+  if (popularModels.length > 0) {
+    const popularGroup = document.createElement('optgroup');
+    popularGroup.label = 'Modelos Recomendados';
+    
+    popularModels.forEach(model => {
+      const option = document.createElement('option');
+      option.value = model.id;
+      option.textContent = model.name;
+      popularGroup.appendChild(option);
+    });
+    
+    select.appendChild(popularGroup);
+  }
+
+  // Agrupa outros modelos por categoria
+  const categories = {};
+  models.forEach(model => {
+    if (popularModels.find(p => p.id === model.id)) return; // Pula se já está nos populares
+    
+    const category = window.modelsManager.getModelCategory(model.id);
+    if (!categories[category]) {
+      categories[category] = [];
+    }
+    categories[category].push(model);
+  });
+
+  // Adiciona categorias
+  Object.keys(categories).sort().forEach(category => {
+    const group = document.createElement('optgroup');
+    group.label = category;
+    
+    categories[category].forEach(model => {
+      const option = document.createElement('option');
+      option.value = model.id;
+      option.textContent = model.name;
+      group.appendChild(option);
+    });
+    
+    select.appendChild(group);
   });
 }
 
-function saveSettings() {
+function searchModels() {
+  const query = document.getElementById('model-search').value;
+  const filteredModels = window.modelsManager.searchModels(query);
+  populateModelSelect(filteredModels);
+}
+
+async function refreshModels() {
+  if (!currentApiKey) {
+    alert('Configure uma API key primeiro');
+    return;
+  }
+  
+  await loadModels(true);
+  alert('Modelos atualizados com sucesso!');
+}
+
+async function validateApiKey() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey) {
+    alert('Insira uma API key primeiro');
+    return;
+  }
+
+  const validateBtn = document.getElementById('validate-key');
+  const originalText = validateBtn.textContent;
+  validateBtn.textContent = 'Validando...';
+  validateBtn.disabled = true;
+
+  try {
+    const result = await window.securityManager.validateApiKey(apiKey);
+    
+    if (result.valid) {
+      await window.securityManager.markKeyAsValidated();
+      alert('API key validada com sucesso!');
+      
+      // Atualiza status
+      const keyData = await window.securityManager.getApiKey();
+      updateKeyStatus(keyData);
+      
+      // Carrega modelos
+      currentApiKey = apiKey;
+      await loadModels(true);
+    } else {
+      alert(`Erro na validação: ${result.error}`);
+    }
+  } catch (error) {
+    alert(`Erro ao validar: ${error.message}`);
+  } finally {
+    validateBtn.textContent = originalText;
+    validateBtn.disabled = false;
+  }
+}
+
+async function saveSettings() {
   const apiKey = document.getElementById('api-key').value.trim();
   const selectedModel = document.getElementById('model-select').value;
 
@@ -54,13 +227,26 @@ function saveSettings() {
     return;
   }
 
-  chrome.storage.sync.set({
-    openRouterApiKey: apiKey,
-    selectedModel: selectedModel
-  }, function() {
-    alert('Configurações salvas com sucesso!');
-    showMain();
-  });
+  try {
+    // Salva API key de forma segura
+    await window.securityManager.saveApiKey(apiKey);
+    currentApiKey = apiKey;
+    
+    // Salva modelo selecionado
+    chrome.storage.sync.set({
+      selectedModel: selectedModel
+    }, function() {
+      alert('Configurações salvas com sucesso!');
+      showMain();
+    });
+
+    // Carrega modelos se ainda não foram carregados
+    if (!modelsLoaded) {
+      await loadModels();
+    }
+  } catch (error) {
+    alert(`Erro ao salvar: ${error.message}`);
+  }
 }
 
 function sendMessage() {
@@ -68,34 +254,37 @@ function sendMessage() {
   if (userInput === '') return;
 
   // Check if settings are configured
-  chrome.storage.sync.get(['openRouterApiKey'], function(result) {
-    if (!result.openRouterApiKey) {
+  if (!currentApiKey) {
+    const keyData = await window.securityManager.getApiKey();
+    if (!keyData || !keyData.key) {
       alert('Por favor, configure sua API key nas configurações.');
       showSettings();
       return;
     }
+    currentApiKey = keyData.key;
+  }
 
-    addMessage('user', userInput);
-    document.getElementById('user-input').value = '';
+  addMessage('user', userInput);
+  document.getElementById('user-input').value = '';
+  
+  // Show typing indicator
+  const typingId = addMessage('assistant', 'Digitando...');
+  
+  chrome.runtime.sendMessage({ 
+    action: 'makeApiRequest', 
+    prompt: userInput,
+    apiKey: currentApiKey
+  }, function(response) {
+    // Remove typing indicator
+    document.getElementById(typingId).remove();
     
-    // Show typing indicator
-    const typingId = addMessage('assistant', 'Digitando...');
+    if (response.error) {
+      addMessage('error', `Erro: ${response.error}`);
+    } else {
+      addMessage('assistant', response.reply);
+    }
     
-    chrome.runtime.sendMessage({ 
-      action: 'makeApiRequest', 
-      prompt: userInput 
-    }, function(response) {
-      // Remove typing indicator
-      document.getElementById(typingId).remove();
-      
-      if (response.error) {
-        addMessage('error', `Erro: ${response.error}`);
-      } else {
-        addMessage('assistant', response.reply);
-      }
-      
-      saveChatHistory();
-    });
+    saveChatHistory();
   });
 }
 

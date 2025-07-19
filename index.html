@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Izy AI Venice - Web App</title>
   <link rel="stylesheet" href="web-styles.css">
+  <script src="security.js"></script>
+  <script src="models.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -32,17 +34,23 @@
       <div class="setting-group">
         <label for="api-key">OpenRouter API Key:</label>
         <input type="password" id="api-key" placeholder="Insira sua API key">
+        <div id="key-status"></div>
+        <button type="button" id="validate-key" class="validate-btn">Validar Chave</button>
         <small>Obtenha sua chave em <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></small>
       </div>
 
       <div class="setting-group">
         <label for="model-select">Modelo:</label>
+        <div class="model-controls">
+          <input type="text" id="model-search" placeholder="Buscar modelos..." class="model-search">
+          <button type="button" id="refresh-models" class="refresh-btn">🔄</button>
+        </div>
         <select id="model-select">
           <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-          <option value="openai/gpt-4">GPT-4</option>
-          <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
-          <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B</option>
         </select>
+        <div id="models-loading" style="display: none;">
+          <small>Carregando modelos...</small>
+        </div>
       </div>
 
       <button id="save-settings">Salvar Configurações</button>

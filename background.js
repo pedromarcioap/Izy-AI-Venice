@@ -1,7 +1,7 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'makeApiRequest') {
-    chrome.storage.sync.get(['openRouterApiKey', 'selectedModel'], function(result) {
-      const apiKey = result.openRouterApiKey;
+    chrome.storage.sync.get(['selectedModel'], function(result) {
+      const apiKey = request.apiKey;
       const model = result.selectedModel || 'anthropic/claude-3.5-sonnet';
 
       if (!apiKey) {

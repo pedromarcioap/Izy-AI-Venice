@@ -249,6 +249,100 @@ body {
   text-decoration: underline;
 }
 
+.key-status {
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.key-status.validated {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.key-status.unvalidated {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-icon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.status-text {
+  flex: 1;
+}
+
+.validate-btn {
+  width: 100%;
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.validate-btn:hover {
+  background: #138496;
+}
+
+.validate-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.model-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.model-search {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.model-search:focus {
+  border-color: #007bff;
+}
+
+.refresh-btn {
+  padding: 8px 12px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  background: #5a6268;
+  transform: rotate(180deg);
+}
+
+#models-loading {
+  text-align: center;
+  padding: 8px;
+  color: #6c757d;
+}
+
 #save-settings,
 #clear-chat {
   width: calc(100% - 40px);
