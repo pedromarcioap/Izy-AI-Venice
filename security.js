@@ -113,27 +113,36 @@ class SecurityManager {
 
   async validateApiKey(apiKey) {
     try {
+      console.log('🔐 Validando API key...');
+      
       const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'HTTP-Referer': window.location.origin || 'chrome-extension://',
-          'X-Title': 'Izy AI Venice'
+          'X-Title': 'Izy AI Venice',
+          'Content-Type': 'application/json'
         }
       });
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ API key válida:', data);
         return {
           valid: true,
-          data: data.data || {}
+          data: data.data || {},
+          info: data
         };
       } else {
+        const errorText = await response.text();
+        console.error('❌ API key inválida:', response.status, errorText);
         return {
           valid: false,
-          error: `Erro ${response.status}: ${response.statusText}`
+          error: `Erro ${response.status}: ${errorText || response.statusText}`
         };
       }
     } catch (error) {
+      console.error('❌ Erro na validação:', error);
       return {
         valid: false,
         error: error.message
@@ -167,8 +176,13 @@ class SecurityManager {
 
   validateApiKeyFormat(apiKey) {
     // Valida formato básico da API key da OpenRouter
-    return /^sk-or-v1-[a-f0-9]{64}$/.test(apiKey) || 
-           /^sk-[a-zA-Z0-9]{48,}$/.test(apiKey);
+    const patterns = [
+      /^sk-or-v1-[a-f0-9]{64}$/,  // Formato OpenRouter v1
+      /^sk-[a-zA-Z0-9]{48,}$/,    // Formato OpenAI/geral
+      /^or-[a-zA-Z0-9-]{20,}$/    // Formato OpenRouter alternativo
+    ];
+    
+    return patterns.some(pattern => pattern.test(apiKey));
   }
 
   async removeApiKey() {

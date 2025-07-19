@@ -26,6 +26,7 @@ function setupEventListeners() {
   document.getElementById('refresh-models').addEventListener('click', refreshModels);
   document.getElementById('model-search').addEventListener('input', searchModels);
   document.getElementById('validate-key').addEventListener('click', validateApiKey);
+  document.getElementById('clear-cache').addEventListener('click', clearModelsCache);
 }
 
 function showSettings() {
@@ -102,22 +103,43 @@ async function loadModels(forceUpdate = false) {
   if (!currentApiKey) return;
 
   const loadingIndicator = document.getElementById('models-loading');
+  const refreshBtn = document.getElementById('refresh-models');
+  
   if (loadingIndicator) {
     loadingIndicator.style.display = 'block';
+    loadingIndicator.innerHTML = '<small>🔄 Carregando modelos...</small>';
+  }
+  
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = '⏳';
   }
 
   try {
+    console.log('🚀 Iniciando carregamento de modelos...');
     const models = await window.modelsManager.syncModels(currentApiKey, forceUpdate);
+    console.log('📊 Modelos carregados:', models.length);
+    
     populateModelSelect(models);
     modelsLoaded = true;
     
     if (loadingIndicator) {
       loadingIndicator.style.display = 'none';
     }
+    
+    // Mostra estatísticas
+    const stats = window.modelsManager.getModelStats();
+    console.log('📈 Estatísticas:', stats);
+    
   } catch (error) {
     console.error('Erro ao carregar modelos:', error);
     if (loadingIndicator) {
-      loadingIndicator.innerHTML = '<small style="color: #dc3545;">Erro ao carregar modelos</small>';
+      loadingIndicator.innerHTML = `<small style="color: #dc3545;">❌ Erro: ${error.message}</small>`;
+    }
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = '🔄';
     }
   }
 }
@@ -126,22 +148,33 @@ function populateModelSelect(models) {
   const select = document.getElementById('model-select');
   if (!select) return;
 
+  console.log('🎨 Populando select com', models.length, 'modelos');
+
   // Salva o valor atual
   const currentValue = select.value;
 
   // Limpa opções existentes
   select.innerHTML = '';
 
+  if (models.length === 0) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Nenhum modelo disponível';
+    option.disabled = true;
+    select.appendChild(option);
+    return;
+  }
+
   // Adiciona modelos populares primeiro
   const popularModels = window.modelsManager.getPopularModels();
   if (popularModels.length > 0) {
     const popularGroup = document.createElement('optgroup');
-    popularGroup.label = 'Modelos Recomendados';
+    popularGroup.label = `⭐ Recomendados (${popularModels.length})`;
     
     popularModels.forEach(model => {
       const option = document.createElement('option');
       option.value = model.id;
-      option.textContent = model.name;
+      option.textContent = model.displayName || model.name;
       popularGroup.appendChild(option);
     });
     
@@ -151,9 +184,9 @@ function populateModelSelect(models) {
   // Agrupa outros modelos por categoria
   const categories = {};
   models.forEach(model => {
-    if (popularModels.find(p => p.id === model.id)) return; // Pula se já está nos populares
+    if (model.isPopular) return; // Pula se já está nos populares
     
-    const category = window.modelsManager.getModelCategory(model.id);
+    const category = model.category;
     if (!categories[category]) {
       categories[category] = [];
     }
@@ -162,13 +195,15 @@ function populateModelSelect(models) {
 
   // Adiciona categorias
   Object.keys(categories).sort().forEach(category => {
+    if (categories[category].length === 0) return;
+    
     const group = document.createElement('optgroup');
-    group.label = category;
+    group.label = `${category} (${categories[category].length})`;
     
     categories[category].forEach(model => {
       const option = document.createElement('option');
       option.value = model.id;
-      option.textContent = model.name;
+      option.textContent = model.displayName || model.name;
       group.appendChild(option);
     });
     
@@ -178,25 +213,71 @@ function populateModelSelect(models) {
   // Restaura o valor anterior se ainda existir
   if (currentValue) {
     select.value = currentValue;
+    if (select.value !== currentValue) {
+      console.log('⚠️ Modelo anterior não encontrado:', currentValue);
+    }
   }
+  
+  console.log('✅ Select populado com sucesso');
 }
 
 function searchModels() {
   const query = document.getElementById('model-search').value;
+  console.log('🔍 Buscando por:', query);
+  
   if (window.modelsManager.models && window.modelsManager.models.length > 0) {
     const filteredModels = window.modelsManager.searchModels(query);
+    console.log('📋 Resultados da busca:', filteredModels.length);
     populateModelSelect(filteredModels);
+  } else {
+    console.log('⚠️ Nenhum modelo disponível para busca');
   }
 }
 
 async function refreshModels() {
   if (!currentApiKey) {
-    alert('Configure uma API key primeiro');
+    alert('⚠️ Configure uma API key primeiro');
     return;
   }
   
-  await loadModels(true);
-  alert('Modelos atualizados com sucesso!');
+  try {
+    await loadModels(true);
+    const stats = window.modelsManager.getModelStats();
+    alert(`✅ ${stats.total} modelos atualizados com sucesso!\n\n📊 Estatísticas:\n• Popular: ${stats.popular}\n• Categorias: ${Object.keys(stats.categories).length}`);
+  } catch (error) {
+    alert(`❌ Erro ao atualizar modelos: ${error.message}`);
+  }
+}
+
+async function clearModelsCache() {
+  if (confirm('🗑️ Tem certeza que deseja limpar o cache de modelos?\n\nIsso forçará uma nova sincronização na próxima vez.')) {
+    try {
+      await window.modelsManager.clearCache();
+      document.getElementById('model-select').innerHTML = '<option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>';
+      modelsLoaded = false;
+      alert('✅ Cache limpo com sucesso!');
+    } catch (error) {
+      alert(`❌ Erro ao limpar cache: ${error.message}`);
+    }
+  }
+}
+
+function updateModelsStats() {
+  const statsDiv = document.getElementById('models-stats');
+  if (!statsDiv || !window.modelsManager.models.length) return;
+  
+  const stats = window.modelsManager.getModelStats();
+  const topCategories = Object.entries(stats.categories)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 3)
+    .map(([cat, count]) => `${cat}: ${count}`)
+    .join(' • ');
+  
+  statsDiv.innerHTML = `
+    📊 Total: ${stats.total} modelos | ⭐ Popular: ${stats.popular}<br>
+    🏷️ ${topCategories}
+  `;
+  statsDiv.classList.add('show');
 }
 
 async function validateApiKey() {
