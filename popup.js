@@ -107,17 +107,17 @@ async function loadModels(forceUpdate = false) {
   
   if (loadingIndicator) {
     loadingIndicator.style.display = 'block';
-    loadingIndicator.innerHTML = '<small>🔄 Carregando modelos...</small>';
+    loadingIndicator.textContent = '🔄 Carregando modelos...';
   }
   
   if (refreshBtn) {
     refreshBtn.disabled = true;
-    refreshBtn.innerHTML = '⏳';
+    refreshBtn.textContent = '⏳';
   }
 
   try {
     console.log('🚀 Iniciando carregamento de modelos...');
-    const models = await window.modelsManager.syncModels(currentApiKey, forceUpdate);
+    const models = await window.modelsManager.fetchModels(currentApiKey);
     console.log('📊 Modelos carregados:', models.length);
     
     populateModelSelect(models);
@@ -127,20 +127,17 @@ async function loadModels(forceUpdate = false) {
       loadingIndicator.style.display = 'none';
     }
     
-    // Mostra estatísticas
-    const stats = window.modelsManager.getModelStats();
-    console.log('📈 Estatísticas:', stats);
     updateModelsStats();
     
   } catch (error) {
     console.error('Erro ao carregar modelos:', error);
     if (loadingIndicator) {
-      loadingIndicator.innerHTML = `<small style="color: #dc3545;">❌ Erro: ${error.message}</small>`;
+      loadingIndicator.innerHTML = `<small style="color: #dc3545;">❌ ${error.message}</small>`;
     }
   } finally {
     if (refreshBtn) {
       refreshBtn.disabled = false;
-      refreshBtn.innerHTML = '🔄';
+      refreshBtn.textContent = '🔄';
     }
   }
 }
@@ -149,43 +146,35 @@ function populateModelSelect(models) {
   const select = document.getElementById('model-select');
   if (!select) return;
 
-  console.log('🎨 Populando select com', models.length, 'modelos');
-
-  // Salva o valor atual
   const currentValue = select.value;
-
-  // Limpa opções existentes
   select.innerHTML = '';
 
   if (models.length === 0) {
     const option = document.createElement('option');
-    option.value = '';
+    option.value = 'anthropic/claude-3.5-sonnet';
     option.textContent = 'Nenhum modelo disponível';
-    option.disabled = true;
     select.appendChild(option);
     return;
   }
 
-  // Adiciona modelos populares primeiro
   const popularModels = window.modelsManager.getPopularModels();
   if (popularModels.length > 0) {
     const popularGroup = document.createElement('optgroup');
-    popularGroup.label = `⭐ Recomendados (${popularModels.length})`;
+    popularGroup.label = `⭐ Populares (${popularModels.length})`;
     
     popularModels.forEach(model => {
       const option = document.createElement('option');
       option.value = model.id;
-      option.textContent = model.displayName || model.name;
+      option.textContent = model.displayName;
       popularGroup.appendChild(option);
     });
     
     select.appendChild(popularGroup);
   }
 
-  // Agrupa outros modelos por categoria
   const categories = {};
   models.forEach(model => {
-    if (model.isPopular) return; // Pula se já está nos populares
+    if (model.isPopular) return;
     
     const category = model.category;
     if (!categories[category]) {
@@ -194,7 +183,6 @@ function populateModelSelect(models) {
     categories[category].push(model);
   });
 
-  // Adiciona categorias
   Object.keys(categories).sort().forEach(category => {
     if (categories[category].length === 0) return;
     
@@ -204,34 +192,24 @@ function populateModelSelect(models) {
     categories[category].forEach(model => {
       const option = document.createElement('option');
       option.value = model.id;
-      option.textContent = model.displayName || model.name;
+      option.textContent = model.displayName;
       group.appendChild(option);
     });
     
     select.appendChild(group);
   });
 
-  // Restaura o valor anterior se ainda existir
   if (currentValue) {
     select.value = currentValue;
-    if (select.value !== currentValue) {
-      console.log('⚠️ Modelo anterior não encontrado:', currentValue);
-    }
   }
-  
-  console.log('✅ Select populado com sucesso');
 }
 
 function searchModels() {
   const query = document.getElementById('model-search').value;
-  console.log('🔍 Buscando por:', query);
   
-  if (window.modelsManager.models && window.modelsManager.models.length > 0) {
+  if (window.modelsManager && window.modelsManager.models.length > 0) {
     const filteredModels = window.modelsManager.searchModels(query);
-    console.log('📋 Resultados da busca:', filteredModels.length);
     populateModelSelect(filteredModels);
-  } else {
-    console.log('⚠️ Nenhum modelo disponível para busca');
   }
 }
 
@@ -294,21 +272,26 @@ async function validateApiKey() {
   validateBtn.disabled = true;
 
   try {
-    const result = await window.securityManager.validateApiKey(apiKey);
+    // Testa diretamente com a API de modelos
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
     
-    if (result.valid) {
+    if (response.ok) {
       await window.securityManager.markKeyAsValidated();
       alert('API key validada com sucesso!');
       
-      // Atualiza status
       const keyData = await window.securityManager.getApiKey();
       updateKeyStatus(keyData);
       
-      // Carrega modelos
       currentApiKey = apiKey;
-      await loadModels(true);
+      await loadModels();
     } else {
-      alert(`Erro na validação: ${result.error}`);
+      alert(`Erro na validação: ${response.status} - ${response.statusText}`);
     }
   } catch (error) {
     alert(`Erro ao validar: ${error.message}`);

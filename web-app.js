@@ -104,17 +104,17 @@ async function loadModels(forceUpdate = false) {
   
   if (loadingIndicator) {
     loadingIndicator.style.display = 'block';
-    loadingIndicator.innerHTML = '<small>🔄 Carregando modelos...</small>';
+    loadingIndicator.textContent = '🔄 Carregando modelos...';
   }
   
   if (refreshBtn) {
     refreshBtn.disabled = true;
-    refreshBtn.innerHTML = '⏳';
+    refreshBtn.textContent = '⏳';
   }
 
   try {
     console.log('🚀 Iniciando carregamento de modelos...');
-    const models = await window.modelsManager.syncModels(currentApiKey, forceUpdate);
+    const models = await window.modelsManager.fetchModels(currentApiKey);
     console.log('📊 Modelos carregados:', models.length);
     
     populateModelSelect(models);
@@ -124,20 +124,17 @@ async function loadModels(forceUpdate = false) {
       loadingIndicator.style.display = 'none';
     }
     
-    // Mostra estatísticas
-    const stats = window.modelsManager.getModelStats();
-    console.log('📈 Estatísticas:', stats);
     updateModelsStats();
     
   } catch (error) {
     console.error('Erro ao carregar modelos:', error);
     if (loadingIndicator) {
-      loadingIndicator.innerHTML = `<small style="color: #dc3545;">❌ Erro: ${error.message}</small>`;
+      loadingIndicator.innerHTML = `<small style="color: #dc3545;">❌ ${error.message}</small>`;
     }
   } finally {
     if (refreshBtn) {
       refreshBtn.disabled = false;
-      refreshBtn.innerHTML = '🔄';
+      refreshBtn.textContent = '🔄';
     }
   }
 }
@@ -260,21 +257,26 @@ async function validateApiKey() {
   validateBtn.disabled = true;
 
   try {
-    const result = await window.securityManager.validateApiKey(apiKey);
+    // Testa diretamente com a API de modelos
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
     
-    if (result.valid) {
+    if (response.ok) {
       await window.securityManager.markKeyAsValidated();
       alert('API key validada com sucesso!');
       
-      // Atualiza status
       const keyData = await window.securityManager.getApiKey();
       updateKeyStatus(keyData);
       
-      // Carrega modelos
       currentApiKey = apiKey;
-      await loadModels(true);
+      await loadModels();
     } else {
-      alert(`Erro na validação: ${result.error}`);
+      alert(`Erro na validação: ${response.status} - ${response.statusText}`);
     }
   } catch (error) {
     alert(`Erro ao validar: ${error.message}`);
