@@ -249,7 +249,7 @@ async function saveSettings() {
   }
 }
 
-function sendMessage() {
+async function sendMessage() {
   const userInput = document.getElementById('user-input').value.trim();
   if (userInput === '') return;
 
