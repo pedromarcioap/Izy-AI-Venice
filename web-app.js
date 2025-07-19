@@ -127,6 +127,7 @@ async function loadModels(forceUpdate = false) {
     // Mostra estatísticas
     const stats = window.modelsManager.getModelStats();
     console.log('📈 Estatísticas:', stats);
+    updateModelsStats();
     
   } catch (error) {
     console.error('Erro ao carregar modelos:', error);
