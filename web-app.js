@@ -1,4 +1,6 @@
 let currentView = 'main';
+let currentApiKey = null;
+let modelsLoaded = false;
 
 document.addEventListener('DOMContentLoaded', function() {
   loadSettings();
