@@ -49,12 +49,20 @@ async function loadSettings() {
       
       // Mostra status da chave
       updateKeyStatus(keyData);
+      
+      // Carrega modelos se a chave estiver validada
+      if (keyData.validated) {
+        await initializeModels();
+      }
     }
 
     // Carrega modelo selecionado
     chrome.storage.sync.get(['selectedModel'], function(result) {
       if (result.selectedModel) {
-        document.getElementById('model-select').value = result.selectedModel;
+        const modelSelect = document.getElementById('model-select');
+        if (modelSelect) {
+          modelSelect.value = result.selectedModel;
+        }
       }
     });
   } catch (error) {
@@ -118,6 +126,9 @@ function populateModelSelect(models) {
   const select = document.getElementById('model-select');
   if (!select) return;
 
+  // Salva o valor atual
+  const currentValue = select.value;
+
   // Limpa opções existentes
   select.innerHTML = '';
 
@@ -163,12 +174,19 @@ function populateModelSelect(models) {
     
     select.appendChild(group);
   });
+
+  // Restaura o valor anterior se ainda existir
+  if (currentValue) {
+    select.value = currentValue;
+  }
 }
 
 function searchModels() {
   const query = document.getElementById('model-search').value;
-  const filteredModels = window.modelsManager.searchModels(query);
-  populateModelSelect(filteredModels);
+  if (window.modelsManager.models && window.modelsManager.models.length > 0) {
+    const filteredModels = window.modelsManager.searchModels(query);
+    populateModelSelect(filteredModels);
+  }
 }
 
 async function refreshModels() {

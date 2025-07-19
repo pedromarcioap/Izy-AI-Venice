@@ -31,11 +31,11 @@ class ModelsManager {
 
   async syncModels(apiKey, forceUpdate = false) {
     const now = Date.now();
-    const lastUpdate = this.getLastUpdateTime();
+    const lastUpdate = await this.getLastUpdateTime();
 
     // Verifica se precisa atualizar
     if (!forceUpdate && lastUpdate && (now - lastUpdate) < this.updateInterval) {
-      this.models = this.getCachedModels();
+      this.models = await this.getCachedModels();
       return this.models;
     }
 
@@ -69,7 +69,7 @@ class ModelsManager {
       return this.models;
     } catch (error) {
       // Se falhar, tenta usar cache
-      this.models = this.getCachedModels();
+      this.models = await this.getCachedModels();
       throw error;
     }
   }
@@ -120,7 +120,7 @@ class ModelsManager {
     }
   }
 
-  getCachedModels() {
+  async getCachedModels() {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       return new Promise((resolve) => {
         chrome.storage.local.get(['cached_models'], (result) => {
@@ -141,7 +141,7 @@ class ModelsManager {
     }
   }
 
-  getLastUpdateTime() {
+  async getLastUpdateTime() {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       return new Promise((resolve) => {
         chrome.storage.local.get(['models_last_update'], (result) => {
