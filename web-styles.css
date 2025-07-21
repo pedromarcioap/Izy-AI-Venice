@@ -352,22 +352,6 @@ body {
   transform: rotate(180deg);
 }
 
-.clear-cache-btn {
-  padding: 8px 12px;
-  background: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s ease;
-}
-
-.clear-cache-btn:hover {
-  background: #c82333;
-  transform: scale(1.05);
-}
-
 .models-stats {
   margin-top: 8px;
   padding: 8px;
