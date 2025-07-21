@@ -238,7 +238,7 @@ async function refreshModels() {
   try {
     await loadModels(true);
     const stats = window.modelsManager.getModelStats();
-    alert(`✅ ${stats.total} modelos atualizados com sucesso!\n\n📊 Estatísticas:\n• Popular: ${stats.popular}\n• Categorias: ${Object.keys(stats.categories).length}`);
+    alert(`✅ ${stats.total} modelos atualizados com sucesso!\n\n📊 Estatísticas:\n• Populares: ${stats.popular}\n• Categorias: ${Object.keys(stats.categories).length}`);
   } catch (error) {
     alert(`❌ Erro ao atualizar modelos: ${error.message}`);
   }

@@ -24,7 +24,6 @@ function setupEventListeners() {
   document.getElementById('save-settings').addEventListener('click', saveSettings);
   document.getElementById('clear-chat').addEventListener('click', clearChat);
   document.getElementById('refresh-models').addEventListener('click', refreshModels);
-  document.getElementById('model-search').addEventListener('input', searchModels);
   document.getElementById('validate-key').addEventListener('click', validateApiKey);
   document.getElementById('clear-cache').addEventListener('click', clearModelsCache);
 }
@@ -225,19 +224,6 @@ async function refreshModels() {
     alert(`✅ ${stats.total} modelos atualizados com sucesso!\n\n📊 Estatísticas:\n• Popular: ${stats.popular}\n• Categorias: ${Object.keys(stats.categories).length}`);
   } catch (error) {
     alert(`❌ Erro ao atualizar modelos: ${error.message}`);
-  }
-}
-
-async function clearModelsCache() {
-  if (confirm('🗑️ Tem certeza que deseja limpar o cache de modelos?\n\nIsso forçará uma nova sincronização na próxima vez.')) {
-    try {
-      await window.modelsManager.clearCache();
-      document.getElementById('model-select').innerHTML = '<option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>';
-      modelsLoaded = false;
-      alert('✅ Cache limpo com sucesso!');
-    } catch (error) {
-      alert(`❌ Erro ao limpar cache: ${error.message}`);
-    }
   }
 }
 
